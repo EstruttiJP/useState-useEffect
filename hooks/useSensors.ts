@@ -1,9 +1,5 @@
 import * as Battery from 'expo-battery';
-import {
-  Accelerometer,
-  Gyroscope,
-  Pedometer,
-} from 'expo-sensors';
+import { Accelerometer, Gyroscope, Pedometer } from 'expo-sensors';
 import { useEffect, useRef, useState } from 'react';
 
 export interface SensorData {
@@ -35,6 +31,7 @@ export interface WorkoutMetrics {
 }
 
 export function useSensors() {
+  // DEMO useState: Estados principais para apresentação
   const [sensorData, setSensorData] = useState<SensorData>({
     accelerometer: { x: 0, y: 0, z: 0, magnitude: 0 },
     gyroscope: { x: 0, y: 0, z: 0, magnitude: 0 },
@@ -56,29 +53,25 @@ export function useSensors() {
   const [permissionsGranted, setPermissionsGranted] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Refs para controle interno (não re-render)
   const subscriptions = useRef<any[]>([]);
   const recordingStartTime = useRef<number>(0);
   const accelerationHistory = useRef<number[]>([]);
   const rotationHistory = useRef<number[]>([]);
   const initialSteps = useRef<number>(0);
+  const currentSensorData = useRef<SensorData>({
+    accelerometer: { x: 0, y: 0, z: 0, magnitude: 0 },
+    gyroscope: { x: 0, y: 0, z: 0, magnitude: 0 },
+    pedometer: { steps: 0 },
+  });
 
-  // Request permissions and setup sensors
+  // DEMO useEffect: Setup inicial dos sensores
   useEffect(() => {
     const setupSensors = async () => {
       try {
         setError(null);
         
-        // Check sensor availability
-        const accelerometerAvailable = await Accelerometer.isAvailableAsync();
-        const gyroscopeAvailable = await Gyroscope.isAvailableAsync();
-        const pedometerAvailable = await Pedometer.isAvailableAsync();
-
-        if (!accelerometerAvailable && !gyroscopeAvailable && !pedometerAvailable) {
-          setError('Nenhum sensor disponível neste dispositivo');
-          return;
-        }
-
-        // Request permissions
+        // Pedir permissões dos sensores
         const { granted: accelGranted } = await Accelerometer.requestPermissionsAsync();
         const { granted: gyroGranted } = await Gyroscope.requestPermissionsAsync();
         const { granted: pedometerGranted } = await Pedometer.requestPermissionsAsync();
@@ -90,15 +83,9 @@ export function useSensors() {
           return;
         }
 
-        // Setup battery monitoring
+        // Monitorar bateria
         const batteryState = await Battery.getBatteryLevelAsync();
         setBatteryLevel(batteryState);
-
-        const batterySubscription = Battery.addBatteryLevelListener(({ batteryLevel }) => {
-          setBatteryLevel(batteryLevel);
-        });
-
-        subscriptions.current.push(batterySubscription);
 
       } catch (err) {
         setError('Erro ao configurar sensores: ' + (err as Error).message);
@@ -106,101 +93,73 @@ export function useSensors() {
     };
 
     setupSensors();
+  }, []); // Array vazio = executa apenas uma vez
 
-    return () => {
-      subscriptions.current.forEach(sub => sub?.remove?.());
-      subscriptions.current = [];
-    };
-  }, []);
-
-  // Start/stop recording
+  // Função simples para toggle do recording
   const toggleRecording = async () => {
     if (isRecording) {
-      stopRecording();
-    } else {
-      await startRecording();
-    }
-  };
-
-  const startRecording = async () => {
-    if (!permissionsGranted) {
-      setError('Permissões necessárias não concedidas');
-      return;
-    }
-
-    if (batteryLevel < 0.2) {
-      setError('Bateria baixa. Conecte o carregador para continuar');
-      return;
-    }
-
-    try {
-      setIsRecording(true);
-      recordingStartTime.current = Date.now();
-      accelerationHistory.current = [];
-      rotationHistory.current = [];
-
-      // Get initial step count
-      const pedometerResult = await Pedometer.getStepCountAsync(
-        new Date(Date.now() - 1000),
-        new Date()
-      );
-      initialSteps.current = pedometerResult.steps;
-
-      // Start accelerometer
-      Accelerometer.setUpdateInterval(100);
-      const accelSubscription = Accelerometer.addListener(({ x, y, z }) => {
-        const magnitude = Math.sqrt(x * x + y * y + z * z);
-        accelerationHistory.current.push(magnitude);
-        
-        setSensorData(prev => ({
-          ...prev,
-          accelerometer: { x, y, z, magnitude }
-        }));
-      });
-
-      // Start gyroscope
-      Gyroscope.setUpdateInterval(100);
-      const gyroSubscription = Gyroscope.addListener(({ x, y, z }) => {
-        const magnitude = Math.sqrt(x * x + y * y + z * z);
-        rotationHistory.current.push(magnitude);
-        
-        setSensorData(prev => ({
-          ...prev,
-          gyroscope: { x, y, z, magnitude }
-        }));
-      });
-
-      // Start pedometer
-      const pedometerSubscription = Pedometer.watchStepCount(result => {
-        const currentSteps = Math.max(0, result.steps - initialSteps.current);
-        setSensorData(prev => ({
-          ...prev,
-          pedometer: { steps: currentSteps }
-        }));
-      });
-
-      subscriptions.current.push(accelSubscription, gyroSubscription, pedometerSubscription);
-
-    } catch (err) {
-      setError('Erro ao iniciar gravação: ' + (err as Error).message);
+      // Parar recording
       setIsRecording(false);
+      subscriptions.current.forEach(sub => sub?.remove?.());
+      subscriptions.current = [];
+    } else {
+      // Iniciar recording
+      if (!permissionsGranted) {
+        setError('Permissões necessárias não concedidas');
+        return;
+      }
+
+      try {
+        setIsRecording(true);
+        recordingStartTime.current = Date.now();
+        accelerationHistory.current = [];
+        rotationHistory.current = [];
+
+        // Iniciar sensores
+        Accelerometer.setUpdateInterval(100);
+        const accelSubscription = Accelerometer.addListener(({ x, y, z }) => {
+          const magnitude = Math.sqrt(x * x + y * y + z * z);
+          accelerationHistory.current.push(magnitude);
+          
+          const newData = { x, y, z, magnitude };
+          currentSensorData.current.accelerometer = newData;
+          setSensorData(prev => ({ ...prev, accelerometer: newData }));
+        });
+
+        Gyroscope.setUpdateInterval(100);
+        const gyroSubscription = Gyroscope.addListener(({ x, y, z }) => {
+          const magnitude = Math.sqrt(x * x + y * y + z * z);
+          rotationHistory.current.push(magnitude);
+          
+          const newData = { x, y, z, magnitude };
+          currentSensorData.current.gyroscope = newData;
+          setSensorData(prev => ({ ...prev, gyroscope: newData }));
+        });
+
+        const pedometerSubscription = Pedometer.watchStepCount(result => {
+          const currentSteps = Math.max(0, result.steps);
+          const newData = { steps: currentSteps };
+          currentSensorData.current.pedometer = newData;
+          setSensorData(prev => ({ ...prev, pedometer: newData }));
+        });
+
+        subscriptions.current.push(accelSubscription, gyroSubscription, pedometerSubscription);
+
+      } catch (err) {
+        setError('Erro ao iniciar gravação: ' + (err as Error).message);
+        setIsRecording(false);
+      }
     }
   };
 
-  const stopRecording = () => {
-    setIsRecording(false);
-    subscriptions.current.forEach(sub => sub?.remove?.());
-    subscriptions.current = [];
-  };
-
-  // Process metrics every second
+  // DEMO useEffect: Calcular métricas a cada segundo durante recording
   useEffect(() => {
     if (!isRecording) return;
 
     const interval = setInterval(() => {
       const duration = Math.floor((Date.now() - recordingStartTime.current) / 1000);
       
-      // Calculate averages
+      // Calcular médias dos últimos 10 valores
       const recentAccel = accelerationHistory.current.slice(-10);
       const recentRotation = rotationHistory.current.slice(-10);
       
@@ -212,7 +171,7 @@ export function useSensors() {
         ? recentRotation.reduce((sum, val) => sum + val, 0) / recentRotation.length 
         : 0;
 
-      // Determine movement type and intensity
+      // Determinar tipo de movimento baseado na aceleração
       let movementType: WorkoutMetrics['movementType'] = 'parado';
       let intensity: WorkoutMetrics['intensity'] = 'baixa';
 
@@ -227,23 +186,25 @@ export function useSensors() {
         intensity = 'média';
       }
 
-      // Estimate calories (rough calculation)
-      const calories = Math.floor(sensorData.pedometer.steps * 0.04 + avgAcceleration * 0.1);
+      // Calcular calorias estimadas
+      const currentSteps = currentSensorData.current.pedometer.steps;
+      const calories = Math.floor(currentSteps * 0.04 + avgAcceleration * 0.1);
 
+      // DEMO useState: Atualizar métricas (demonstra setState)
       setMetrics({
-        steps: sensorData.pedometer.steps,
-        avgAcceleration,
-        avgRotation,
+        steps: currentSteps,
+        avgAcceleration: Number(avgAcceleration.toFixed(1)),
+        avgRotation: Number(avgRotation.toFixed(1)),
         calories,
         duration,
         intensity,
         movementType,
       });
 
-    }, 1000);
+    }, 1000); // Executa a cada 1 segundo
 
-    return () => clearInterval(interval);
-  }, [isRecording, sensorData]);
+    return () => clearInterval(interval); // Cleanup do useEffect
+  }, [isRecording]); // Dependência: só executa quando isRecording muda
 
   return {
     sensorData,
