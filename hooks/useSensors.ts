@@ -24,7 +24,6 @@ export interface WorkoutMetrics {
   steps: number;
   avgAcceleration: number;
   avgRotation: number;
-  calories: number;
   duration: number;
   intensity: 'baixa' | 'média' | 'alta';
   movementType: 'parado' | 'caminhando' | 'correndo' | 'saltando';
@@ -42,7 +41,6 @@ export function useSensors() {
     steps: 0,
     avgAcceleration: 0,
     avgRotation: 0,
-    calories: 0,
     duration: 0,
     intensity: 'baixa',
     movementType: 'parado',
@@ -175,7 +173,7 @@ export function useSensors() {
       let movementType: WorkoutMetrics['movementType'] = 'parado';
       let intensity: WorkoutMetrics['intensity'] = 'baixa';
 
-      if (avgAcceleration > 8) {
+      if (avgAcceleration > 7) {
         movementType = 'saltando';
         intensity = 'alta';
       } else if (avgAcceleration > 5) {
@@ -188,14 +186,12 @@ export function useSensors() {
 
       // Calcular calorias estimadas
       const currentSteps = currentSensorData.current.pedometer.steps;
-      const calories = Math.floor(currentSteps * 0.04 + avgAcceleration * 0.1);
 
       // DEMO useState: Atualizar métricas (demonstra setState)
       setMetrics({
         steps: currentSteps,
         avgAcceleration: Number(avgAcceleration.toFixed(1)),
         avgRotation: Number(avgRotation.toFixed(1)),
-        calories,
         duration,
         intensity,
         movementType,

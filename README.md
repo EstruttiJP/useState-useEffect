@@ -22,7 +22,7 @@ Demonstrar claramente:
 
 ### Estados Principais (useState)
 - `sensorData`: Dados em tempo real dos sensores
-- `metrics`: Métricas calculadas (passos, calorias, duração)
+- `metrics`: Métricas calculadas (passos, duração)
 - `isRecording`: Status da gravação
 - `batteryLevel`: Nível da bateria
 - `permissionsGranted`: Status das permissões
@@ -44,14 +44,6 @@ Demonstrar claramente:
      // Intervalo de 1 segundo para calcular métricas
      // Cleanup do intervalo quando para de gravar
    }, [isRecording]); // Depende de isRecording
-   ```
-
-3. **Atualização dos Gráficos** (executa quando dados mudam)
-   ```typescript
-   useEffect(() => {
-     // Atualizar histórico dos gráficos
-     // Limitar a 50 pontos
-   }, [sensorData, isRecording]); // Depende dos dados
    ```
 
 ## 🏗️ Arquitetura dos Hooks
@@ -109,8 +101,8 @@ Hook personalizado que encapsula toda a lógica dos sensores:
 
 ### Desenvolvimento
 ```bash
-npm install
-npx expo start
+npm i
+npx expo start --tunnel
 ```
 
 ### No dispositivo
@@ -118,27 +110,10 @@ npx expo start
 2. Escaneie o QR code gerado
 3. O app carregará com todos os sensores funcionando
 
-### Web (limitado)
-```bash
-npx expo start --web
-```
-*Nota: Sensores não funcionam no navegador*
-
-## 📱 Demonstração ao Vivo
-
-### Para a Apresentação:
-1. **Abra o app no celular** via Expo Go
-2. **Mostre a tela inicial** - Estados em estado padrão
-3. **Pressione "Iniciar"** - Demonstra useState mudando isRecording
-4. **Movimente o celular** - Sensores enviam dados em tempo real
-5. **Observe os MetricCards** - useState atualizando métricas
-6. **Veja a duração crescer** - useEffect executando a cada segundo
-
 ### Pontos de Destaque:
 - ⏱️ **Duração**: Incrementa a cada segundo (useEffect com intervalo)
 - 📊 **Aceleração/Rotação**: Atualizam em tempo real (useState dos sensores)
 - 👣 **Passos**: Incrementam conforme movimento (pedômetro)
-- 🔥 **Calorias**: Calculadas automaticamente (useEffect processando dados)
 - 🔋 **Bateria**: Monitora em background (useEffect de setup)
 
 ## 💡 Conceitos Técnicos Avançados
