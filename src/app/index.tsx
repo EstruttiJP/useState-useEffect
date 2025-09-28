@@ -3,13 +3,20 @@ import { AlertTriangle, Battery, CheckCircle, Pause, Play } from 'lucide-react-n
 import { useEffect, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-import { CircularProgress } from '@/components/CircularProgress';
-import { MetricCard } from '@/components/MetricCard';
-import { RealTimeChart } from '@/components/RealTimeChart';
 import { useSensors } from '@/hooks/useSensors';
 import { useWorkoutStorage } from '@/hooks/useWorkoutStorage';
+import { CircularProgress } from '@/src/components/CircularProgress';
+import { MetricCard } from '@/src/components/MetricCard';
+import { RealTimeChart } from '@/src/components/RealTimeChart';
+
+// Tipos para melhor organização
+interface ChartDataState {
+  accelerationHistory: number[];
+  rotationHistory: number[];
+}
 
 export default function MonitorScreen() {
+  // ========== HOOKS EXTERNOS ==========
   const {
     sensorData,
     metrics,
@@ -22,20 +29,39 @@ export default function MonitorScreen() {
 
   const { saveWorkoutSession } = useWorkoutStorage();
 
-  const [accelerationHistory, setAccelerationHistory] = useState<number[]>([]);
-  const [rotationHistory, setRotationHistory] = useState<number[]>([]);
+  // ========== ESTADOS LOCAIS ==========
+  // Estado unificado para dados dos gráficos
+  const [chartData, setChartData] = useState<ChartDataState>({
+    accelerationHistory: [],
+    rotationHistory: []
+  });
 
-  // Update chart data
+  // ========== EFFECTS PRINCIPAIS ==========
+
+  // Effect 1: Atualizar dados dos gráficos em tempo real
   useEffect(() => {
-    if (isRecording) {
-      setAccelerationHistory(prev => [...prev, sensorData.accelerometer.magnitude].slice(-50));
-      setRotationHistory(prev => [...prev, sensorData.gyroscope.magnitude].slice(-50));
+    if (isRecording && sensorData) {
+      setChartData(prev => ({
+        accelerationHistory: [...prev.accelerationHistory, sensorData.accelerometer.magnitude].slice(-50),
+        rotationHistory: [...prev.rotationHistory, sensorData.gyroscope.magnitude].slice(-50)
+      }));
     }
   }, [sensorData, isRecording]);
 
+  // Effect 2: Resetar gráficos quando parar a gravação
+  useEffect(() => {
+    if (!isRecording) {
+      setChartData({
+        accelerationHistory: [],
+        rotationHistory: []
+      });
+    }
+  }, [isRecording]);
+
+  // ========== HANDLERS SIMPLIFICADOS ==========
+
   const handleRecordingToggle = async () => {
     if (isRecording && metrics.duration > 10) {
-      // Save session before stopping
       try {
         await saveWorkoutSession(metrics);
         Alert.alert('Sucesso', 'Treino salvo com sucesso!');
@@ -46,21 +72,24 @@ export default function MonitorScreen() {
     toggleRecording();
   };
 
+  // ========== FUNÇÕES AUXILIARES ==========
+  
   const getIntensityColor = () => {
-    switch (metrics.intensity) {
-      case 'alta': return '#ff0040';
-      case 'média': return '#ffaa00';
-      default: return '#00ff41';
-    }
+    const intensityColors = {
+      alta: '#ff0040',
+      média: '#ffaa00',
+      baixa: '#00ff41'
+    };
+    return intensityColors[metrics.intensity] || '#00ff41';
   };
 
   const getMovementEmoji = () => {
-    switch (metrics.movementType) {
-      case 'correndo': return '🏃‍♂️';
-      case 'caminhando': return '🚶‍♂️';
-      case 'saltando': return '🤸‍♂️';
-      default: return '🧍‍♂️';
-    }
+    const movementEmojis = {
+      correndo: '🏃‍♂️',
+      caminhando: '🚶‍♂️',
+      saltando: '🤸‍♂️'
+    };
+    return movementEmojis[metrics.movementType] || '🧍‍♂️';
   };
 
   const formatDuration = (seconds: number) => {
@@ -68,6 +97,8 @@ export default function MonitorScreen() {
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
+
+  // ========== RENDER CONDITIONS ==========
 
   if (error) {
     return (
@@ -102,22 +133,22 @@ export default function MonitorScreen() {
     );
   }
 
+  // ========== RENDER PRINCIPAL ==========
   return (
     <View style={styles.container}>
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {/* Header */}
+        
+        {/* Header com Status */}
         <View style={styles.header}>
           <View style={styles.statusRow}>
             <View style={styles.batteryContainer}>
               <Battery size={16} color={batteryLevel > 0.2 ? '#00ff41' : '#ff0040'} />
               <Text style={styles.batteryText}>{Math.round(batteryLevel * 100)}%</Text>
             </View>
-            {permissionsGranted && (
-              <View style={styles.statusIndicator}>
-                <CheckCircle size={16} color="#00ff41" />
-                <Text style={styles.statusText}>Conectado</Text>
-              </View>
-            )}
+            <View style={styles.statusIndicator}>
+              <CheckCircle size={16} color="#00ff41" />
+              <Text style={styles.statusText}>Conectado</Text>
+            </View>
           </View>
 
           <View style={styles.movementStatus}>
@@ -131,7 +162,7 @@ export default function MonitorScreen() {
           </View>
         </View>
 
-        {/* Main Metrics */}
+        {/* Métricas Principais */}
         <View style={styles.metricsRow}>
           <MetricCard
             title="Passos"
@@ -163,7 +194,7 @@ export default function MonitorScreen() {
           />
         </View>
 
-        {/* Circular Progress Indicators */}
+        {/* Indicadores de Progresso */}
         <View style={styles.progressRow}>
           <CircularProgress
             size={100}
@@ -191,16 +222,16 @@ export default function MonitorScreen() {
           />
         </View>
 
-        {/* Real-time Charts */}
+        {/* Gráficos em Tempo Real */}
         {isRecording && (
           <>
             <RealTimeChart
-              data={accelerationHistory}
+              data={chartData.accelerationHistory}
               color="#00ff41"
               title="Aceleração em Tempo Real"
             />
             <RealTimeChart
-              data={rotationHistory}
+              data={chartData.rotationHistory}
               color="#4f9eff"
               title="Rotação em Tempo Real"
             />
@@ -208,7 +239,7 @@ export default function MonitorScreen() {
         )}
       </ScrollView>
 
-      {/* Recording Button */}
+      {/* Botão de Gravação */}
       <View style={styles.recordingContainer}>
         <TouchableOpacity
           style={[
@@ -221,11 +252,7 @@ export default function MonitorScreen() {
             colors={isRecording ? ['#ff0040', '#ff4081'] : ['#00ff41', '#00cc35']}
             style={styles.buttonGradient}
           >
-            {isRecording ? (
-              <Pause size={32} color="white" />
-            ) : (
-              <Play size={32} color="white" />
-            )}
+            {isRecording ? <Pause size={32} color="white" /> : <Play size={32} color="white" />}
           </LinearGradient>
         </TouchableOpacity>
         <Text style={styles.recordingText}>

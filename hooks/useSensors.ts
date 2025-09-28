@@ -1,8 +1,8 @@
 import * as Battery from 'expo-battery';
 import {
-    Accelerometer,
-    Gyroscope,
-    Pedometer,
+  Accelerometer,
+  Gyroscope,
+  Pedometer,
 } from 'expo-sensors';
 import { useEffect, useRef, useState } from 'react';
 
@@ -216,13 +216,13 @@ export function useSensors() {
       let movementType: WorkoutMetrics['movementType'] = 'parado';
       let intensity: WorkoutMetrics['intensity'] = 'baixa';
 
-      if (avgAcceleration > 15) {
+      if (avgAcceleration > 8) {
         movementType = 'saltando';
         intensity = 'alta';
-      } else if (avgAcceleration > 8) {
+      } else if (avgAcceleration > 5) {
         movementType = 'correndo';
         intensity = 'alta';
-      } else if (avgAcceleration > 3) {
+      } else if (avgAcceleration > 1) {
         movementType = 'caminhando';
         intensity = 'média';
       }

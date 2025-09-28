@@ -1,23 +1,25 @@
-import { View, Text, StyleSheet } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 
 interface CircularProgressProps {
-  size: number;
-  strokeWidth: number;
-  progress: number; // 0-1
+  size?: number;           // ✅ Opcional com valor padrão
+  strokeWidth?: number;    // ✅ Opcional com valor padrão
+  progress: number;        // ✅ Único estado obrigatório
   color: string;
   label: string;
   value: string;
 }
 
 export function CircularProgress({ 
-  size, 
-  strokeWidth, 
+  size = 100,              // ✅ Valor padrão
+  strokeWidth = 8,         // ✅ Valor padrão
   progress, 
   color, 
   label, 
   value 
 }: CircularProgressProps) {
+  
+  // Cálculos simplificados
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference - (progress * circumference);
@@ -25,6 +27,7 @@ export function CircularProgress({
   return (
     <View style={[styles.container, { width: size, height: size }]}>
       <Svg width={size} height={size}>
+        {/* Círculo de fundo (estático) */}
         <Circle
           cx={size / 2}
           cy={size / 2}
@@ -33,6 +36,8 @@ export function CircularProgress({
           strokeWidth={strokeWidth}
           fill="transparent"
         />
+        
+        {/* Círculo de progresso (REATIVO) */}
         <Circle
           cx={size / 2}
           cy={size / 2}
@@ -40,12 +45,14 @@ export function CircularProgress({
           stroke={color}
           strokeWidth={strokeWidth}
           strokeDasharray={circumference}
-          strokeDashoffset={strokeDashoffset}
+          strokeDashoffset={strokeDashoffset} // ✅ Muda com 'progress'
           strokeLinecap="round"
           fill="transparent"
           transform={`rotate(-90 ${size / 2} ${size / 2})`}
         />
       </Svg>
+      
+      {/* Conteúdo central */}
       <View style={styles.content}>
         <Text style={[styles.value, { color }]}>{value}</Text>
         <Text style={styles.label}>{label}</Text>
@@ -54,6 +61,7 @@ export function CircularProgress({
   );
 }
 
+// Estyles permanecem os mesmos
 const styles = StyleSheet.create({
   container: {
     justifyContent: 'center',

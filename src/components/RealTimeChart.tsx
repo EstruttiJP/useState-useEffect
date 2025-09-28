@@ -1,5 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, Dimensions } from 'react-native';
+import { Dimensions, StyleSheet, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
 interface RealTimeChartProps {
@@ -15,26 +14,26 @@ export function RealTimeChart({
   title, 
   maxDataPoints = 50 
 }: RealTimeChartProps) {
-  const [chartData, setChartData] = useState<number[]>([]);
   const width = Dimensions.get('window').width - 40;
   const height = 80;
 
-  useEffect(() => {
-    setChartData(prev => {
-      const newData = [...prev, ...data.slice(-1)];
-      return newData.slice(-maxDataPoints);
-    });
-  }, [data]);
+  // ========== ESTADO SIMPLIFICADO ==========
+  
+  // Use o próprio `data` da prop - não duplique o estado!
+  // Apenas garanta que não exceda maxDataPoints
+  const displayData = data.slice(-maxDataPoints);
+
+  // ========== LÓGICA DO GRÁFICO ==========
 
   const createPath = () => {
-    if (chartData.length < 2) return '';
+    if (displayData.length < 2) return '';
 
-    const maxValue = Math.max(...chartData, 1);
-    const minValue = Math.min(...chartData, 0);
+    const maxValue = Math.max(...displayData, 1);
+    const minValue = Math.min(...displayData, 0);
     const range = maxValue - minValue || 1;
 
-    const points = chartData.map((value, index) => {
-      const x = (index / (maxDataPoints - 1)) * width;
+    const points = displayData.map((value, index) => {
+      const x = (index / (displayData.length - 1)) * width;
       const y = height - ((value - minValue) / range) * height;
       return `${x},${y}`;
     });

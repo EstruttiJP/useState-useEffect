@@ -1,5 +1,5 @@
-import { View, Text, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { StyleSheet, Text, View } from 'react-native';
 
 interface MetricCardProps {
   title: string;
@@ -9,22 +9,31 @@ interface MetricCardProps {
   intensity?: number;
 }
 
-export function MetricCard({ title, value, unit, color, intensity = 0 }: MetricCardProps) {
-  const getGradientColors = () => {
-    const opacity = Math.max(0.1, intensity / 10);
-    return [`${color}${Math.floor(opacity * 255).toString(16).padStart(2, '0')}`, 'transparent'];
-  };
+export function MetricCard({ 
+  title, 
+  value, 
+  unit, 
+  color, 
+  intensity = 0 
+}: MetricCardProps) {
+  
+  // Gradiente baseado na intensidade - versão simplificada
+  const gradientOpacity = Math.max(0.1, Math.min(intensity, 1));
+  const gradientColor = `${color}${Math.floor(gradientOpacity * 255).toString(16).padStart(2, '0')}`;
+
+  // Formatação do valor
+  const displayValue = typeof value === 'number' ? value.toFixed(1) : value;
 
   return (
     <LinearGradient
-      colors={getGradientColors()}
+      colors={[gradientColor, 'transparent']}
       style={styles.container}
     >
       <View style={styles.content}>
         <Text style={styles.title}>{title}</Text>
         <View style={styles.valueContainer}>
           <Text style={[styles.value, { color }]}>
-            {typeof value === 'number' ? value.toFixed(1) : value}
+            {displayValue}
           </Text>
           {unit && <Text style={styles.unit}>{unit}</Text>}
         </View>
@@ -33,6 +42,7 @@ export function MetricCard({ title, value, unit, color, intensity = 0 }: MetricC
   );
 }
 
+// Estilos permanecem os mesmos
 const styles = StyleSheet.create({
   container: {
     flex: 1,
