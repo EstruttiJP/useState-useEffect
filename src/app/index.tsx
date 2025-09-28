@@ -18,11 +18,6 @@ import { useSensors } from "@/hooks/useSensors";
 import { CircularProgress } from "@/src/components/CircularProgress";
 import { MetricCard } from "@/src/components/MetricCard";
 
-// Tipos para melhor organização
-interface ChartDataState {
-  accelerationHistory: number[];
-  rotationHistory: number[];
-}
 
 export default function MonitorScreen() {
   // ========== HOOKS EXTERNOS ==========
